@@ -27,15 +27,17 @@ SECRET_KEY = 'django-insecure-^2-b#mnmxn#$c+y^qgei8ksnz@@(lh=pk8wao2wxk2j_3p$6xx
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 AUTH_USER_MODEL = 'accounts.User'
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:4200",  
-    "http://127.0.0.1:4200",
-]
+# CORS_ALLOWED_ORIGINS = [
+#     "http://localhost:4200",  
+#     "http://127.0.0.1:4200",
+# ]
 
+
+CORS_ALLOW_ALL_ORIGINS = True
 
 
 # Allow credentials (cookies, authorization headers)
@@ -88,8 +90,9 @@ INSTALLED_APPS += ['django_filters']
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'corsheaders.middleware.CorsMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -191,3 +194,6 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
