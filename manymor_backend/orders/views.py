@@ -1,17 +1,18 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework import status, permissions
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 
 from .models import Order, OrderItem
 from .serializers import OrderSerializer
+from .emails import send_order_confirmation_email
 from cart.models import Cart
 from products.models import Product
 
+
 class CheckoutView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated]
     
     @transaction.atomic
     def post(self, request):
@@ -62,15 +63,16 @@ class CheckoutView(APIView):
         # Clear cart
         cart.items.all().delete()
         
-        
+        # Email is sent automatically via signal
 
         return Response(
             OrderSerializer(order).data,
             status=status.HTTP_201_CREATED
         )
 
+
 class OrderListView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated]
     
     def get(self, request):
         orders = Order.objects.filter(user=request.user).order_by('-created_at')
@@ -78,8 +80,9 @@ class OrderListView(APIView):
         return Response(serializer.data)
 
 
+
 class OrderDetailView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated]
     
     def get(self, request, order_id):
         order = get_object_or_404(Order, id=order_id, user=request.user)

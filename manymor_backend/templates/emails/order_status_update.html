@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Status Update</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 5px 5px 0 0;
+        }
+        .content {
+            background-color: #f9f9f9;
+            padding: 30px;
+            border: 1px solid #ddd;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin: 20px 0;
+            font-size: 1.1em;
+        }
+        .status-placed { background-color: #2196F3; color: white; }
+        .status-packed { background-color: #FF9800; color: white; }
+        .status-dispatched { background-color: #9C27B0; color: white; }
+        .status-in_transit { background-color: #00BCD4; color: white; }
+        .status-delivered { background-color: #4CAF50; color: white; }
+        .status-cancelled { background-color: #F44336; color: white; }
+        
+        .status-timeline {
+            margin: 30px 0;
+            padding: 20px;
+            background-color: white;
+            border-radius: 5px;
+        }
+        .timeline-item {
+            padding: 15px;
+            margin: 10px 0;
+            border-left: 3px solid #ddd;
+            padding-left: 20px;
+        }
+        .timeline-item.active {
+            border-left-color: #667eea;
+            background-color: #f0f4ff;
+        }
+        .order-summary {
+            background-color: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+            border: 1px solid #eee;
+        }
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #777;
+            font-size: 0.9em;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .icon {
+            font-size: 2em;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="icon">📦</div>
+        <h1>Order Status Update</h1>
+    </div>
+    
+    <div class="content">
+        <p>Hi {{ customer_email }},</p>
+        
+        <p>Great news! Your order status has been updated.</p>
+        
+        <div style="text-align: center;">
+            <span class="status-badge status-{{ status_class }}">{{ new_status }}</span>
+        </div>
+        
+        <div class="order-summary">
+            <h2>Order #{{ order_id }}</h2>
+            <p><strong>Order Date:</strong> {{ order_date }}</p>
+            <p><strong>Total Amount:</strong> ${{ total_amount }}</p>
+        </div>
+        
+        {% if status_message %}
+        <div style="background-color: white; padding: 20px; border-left: 4px solid #667eea; margin: 20px 0;">
+            <h3>Status Update:</h3>
+            <p>{{ status_message }}</p>
+        </div>
+        {% endif %}
+        
+        <div class="status-timeline">
+            <h3>Order Progress</h3>
+            
+            <div class="timeline-item {% if current_status == 'PLACED' %}active{% endif %}">
+                <strong>Order Placed</strong>
+                <p style="color: #777; margin: 5px 0;">Your order has been received and is being processed.</p>
+            </div>
+            
+            <div class="timeline-item {% if current_status == 'PACKED' %}active{% endif %}">
+                <strong>Order Packed</strong>
+                <p style="color: #777; margin: 5px 0;">Your items have been packed and prepared for shipment.</p>
+            </div>
+            
+            <div class="timeline-item {% if current_status == 'DISPATCHED' %}active{% endif %}">
+                <strong>Order Dispatched</strong>
+                <p style="color: #777; margin: 5px 0;">Your order has left our facility and is on its way.</p>
+            </div>
+            
+            <div class="timeline-item {% if current_status == 'IN_TRANSIT' %}active{% endif %}">
+                <strong>In Transit</strong>
+                <p style="color: #777; margin: 5px 0;">Your order is currently being delivered.</p>
+            </div>
+            
+            <div class="timeline-item {% if current_status == 'DELIVERED' %}active{% endif %}">
+                <strong>Delivered</strong>
+                <p style="color: #777; margin: 5px 0;">Your order has been successfully delivered!</p>
+            </div>
+        </div>
+        
+        {% if estimated_delivery %}
+        <p><strong>Estimated Delivery:</strong> {{ estimated_delivery }}</p>
+        {% endif %}
+        
+        <div style="text-align: center;">
+            <a href="#" class="button">Track Your Order</a>
+        </div>
+        
+        <p>If you have any questions about your order, please contact us at {{ support_email }}.</p>
+        
+        <p>Thank you for your patience!</p>
+        
+        <p>Best regards,<br>
+        <strong>{{ company_name }} Team</strong></p>
+    </div>
+    
+    <div class="footer">
+        <p>This is an automated message, please do not reply to this email.</p>
+        <p>&copy; 2026 {{ company_name }}. All rights reserved.</p>
+    </div>
+</body>
+</html>

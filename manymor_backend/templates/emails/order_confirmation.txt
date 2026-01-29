@@ -1,0 +1,38 @@
+ORDER CONFIRMATION
+==================
+
+Hi {{ customer_email }},
+
+Thank you for your order! We're excited to let you know that we've received your order and it's being processed.
+
+ORDER DETAILS
+-------------
+Order Number: #{{ order_id }}
+Order Date: {{ order_date }}
+Status: {{ order_status }}
+
+DELIVERY ADDRESS
+----------------
+{{ shipping_address }}
+
+ORDER ITEMS
+-----------
+{% for item in order_items %}
+{{ item.product_name }}
+Quantity: {{ item.quantity }} x ${{ item.unit_price }} = ${{ item.subtotal }}
+{% endfor %}
+
+TOTAL: ${{ total_amount }}
+
+You'll receive another email when your order delivery begins. You can track your order status anytime.
+
+If you have any questions, please don't hesitate to contact us at {{ support_email }}.
+
+Thank you for shopping with us!
+
+Best regards,
+{{ company_name }} Team
+
+---
+This is an automated message, please do not reply to this email.
+© 2026 {{ company_name }}. All rights reserved.

@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import authenticate
 from .models import User, Address
+from .two_factor import verify_totp_code
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -22,6 +23,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True)
+    two_factor_code = serializers.CharField(required=False, allow_blank=True, write_only=True)
 
     def validate(self, data):
         user = authenticate(
@@ -34,6 +36,21 @@ class LoginSerializer(serializers.Serializer):
 
         if not user.is_active:
             raise serializers.ValidationError("User account is disabled")
+
+        # Check if 2FA is enabled for this user
+        if user.two_factor_enabled:
+            two_factor_code = data.get('two_factor_code', '').strip()
+            
+            if not two_factor_code:
+                # Return a special flag indicating 2FA is required
+                raise serializers.ValidationError({
+                    'two_factor_required': True,
+                    'message': 'Two-factor authentication code required'
+                })
+            
+            # Verify the 2FA code
+            if not verify_totp_code(user.two_factor_secret, two_factor_code):
+                raise serializers.ValidationError("Invalid two-factor authentication code")
 
         return user
 
@@ -55,7 +72,7 @@ class AddressSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ('id', 'email', 'phone', 'role')
+        fields = ('id', 'email', 'phone', 'role', 'two_factor_enabled')
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
@@ -66,5 +83,5 @@ class UserProfileSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = User
-        fields = ('id', 'email', 'phone', 'role', 'date_joined', 'addresses')
-        read_only_fields = ('id', 'email', 'role', 'date_joined')
+        fields = ('id', 'email', 'phone', 'role', 'date_joined', 'addresses', 'two_factor_enabled')
+        read_only_fields = ('id', 'email', 'role', 'date_joined', 'two_factor_enabled')

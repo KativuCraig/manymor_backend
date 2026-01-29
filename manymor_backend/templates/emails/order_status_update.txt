@@ -1,0 +1,42 @@
+ORDER STATUS UPDATE
+===================
+
+Hi {{ customer_email }},
+
+Great news! Your order status has been updated.
+
+NEW STATUS: {{ new_status }}
+
+ORDER SUMMARY
+-------------
+Order Number: #{{ order_id }}
+Order Date: {{ order_date }}
+Total Amount: ${{ total_amount }}
+
+{% if status_message %}
+STATUS UPDATE:
+{{ status_message }}
+{% endif %}
+
+ORDER PROGRESS
+--------------
+{% if current_status == 'PLACED' %}► {% else %}  {% endif %}Order Placed - Your order has been received and is being processed.
+{% if current_status == 'PACKED' %}► {% else %}  {% endif %}Order Packed - Your items have been packed and prepared for shipment.
+{% if current_status == 'DISPATCHED' %}► {% else %}  {% endif %}Order Dispatched - Your order has left our facility and is on its way.
+{% if current_status == 'IN_TRANSIT' %}► {% else %}  {% endif %}In Transit - Your order is currently being delivered.
+{% if current_status == 'DELIVERED' %}► {% else %}  {% endif %}Delivered - Your order has been successfully delivered!
+
+{% if estimated_delivery %}
+Estimated Delivery: {{ estimated_delivery }}
+{% endif %}
+
+If you have any questions about your order, please contact us at {{ support_email }}.
+
+Thank you for your patience!
+
+Best regards,
+{{ company_name }} Team
+
+---
+This is an automated message, please do not reply to this email.
+© 2026 {{ company_name }}. All rights reserved.

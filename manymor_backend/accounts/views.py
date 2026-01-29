@@ -3,15 +3,20 @@ from rest_framework.response import Response
 from rest_framework import status, permissions
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.shortcuts import get_object_or_404
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import never_cache
 
 from .serializers import (
     RegisterSerializer, LoginSerializer, UserSerializer,
     UserProfileSerializer, AddressSerializer
 )
 from .models import User, Address
+from .ratelimit import rate_limit
 from products.permissions import IsAdminUserRole
 
 
+@method_decorator(never_cache, name='dispatch')
+@method_decorator(rate_limit(max_requests=5, window_seconds=300, key_prefix='register'), name='post')
 class RegisterView(APIView):
     # don't run authentication (avoid invalid token errors when callers send
     # an expired/invalid Authorization header). Allow anyone to register.
@@ -32,6 +37,8 @@ class RegisterView(APIView):
         }, status=status.HTTP_201_CREATED)
 
 
+@method_decorator(never_cache, name='dispatch')
+@method_decorator(rate_limit(max_requests=5, window_seconds=300, key_prefix='login'), name='post')
 class LoginView(APIView):
     # Login should also be callable without attempting JWT authentication
     # (prevents "Given token not valid for any token type" when a bad
@@ -177,3 +184,137 @@ class UserDetailView(APIView):
                 {'error': 'User not found'},
                 status=status.HTTP_404_NOT_FOUND
             )
+
+
+# Two-Factor Authentication Views
+from .two_factor import (
+    generate_2fa_secret, get_totp_uri, generate_qr_code,
+    verify_totp_code, get_backup_codes
+)
+
+
+class TwoFactorSetupView(APIView):
+    """
+    Initialize 2FA setup - generate secret and QR code
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def post(self, request):
+        user = request.user
+        
+        # Check if 2FA is already enabled
+        if user.two_factor_enabled:
+            return Response(
+                {'error': 'Two-factor authentication is already enabled'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Generate new secret
+        secret = generate_2fa_secret()
+        
+        # Generate TOTP URI
+        totp_uri = get_totp_uri(user, secret)
+        
+        # Generate QR code
+        qr_code = generate_qr_code(totp_uri)
+        
+        # Store secret temporarily (not enabled yet)
+        user.two_factor_secret = secret
+        user.save(update_fields=['two_factor_secret'])
+        
+        return Response({
+            'secret': secret,
+            'qr_code': qr_code,
+            'manual_entry_key': secret,
+            'message': 'Scan the QR code with your authenticator app, then verify with a code'
+        })
+
+
+class TwoFactorVerifyView(APIView):
+    """
+    Verify and enable 2FA with a code from authenticator app
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def post(self, request):
+        user = request.user
+        code = request.data.get('code', '').strip()
+        
+        if not code:
+            return Response(
+                {'error': 'Verification code is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Check if secret exists
+        if not user.two_factor_secret:
+            return Response(
+                {'error': 'Please setup 2FA first'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Verify the code
+        if not verify_totp_code(user.two_factor_secret, code):
+            return Response(
+                {'error': 'Invalid verification code'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Enable 2FA
+        user.two_factor_enabled = True
+        user.save(update_fields=['two_factor_enabled'])
+        
+        # Generate backup codes
+        backup_codes = get_backup_codes()
+        
+        return Response({
+            'message': 'Two-factor authentication enabled successfully',
+            'backup_codes': backup_codes,
+            'warning': 'Save these backup codes in a safe place. You can use them to access your account if you lose your device.'
+        })
+
+
+class TwoFactorDisableView(APIView):
+    """
+    Disable 2FA (requires password confirmation)
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def post(self, request):
+        user = request.user
+        password = request.data.get('password', '')
+        
+        if not user.check_password(password):
+            return Response(
+                {'error': 'Invalid password'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if not user.two_factor_enabled:
+            return Response(
+                {'error': 'Two-factor authentication is not enabled'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Disable 2FA
+        user.two_factor_enabled = False
+        user.two_factor_secret = ''
+        user.save(update_fields=['two_factor_enabled', 'two_factor_secret'])
+        
+        return Response({
+            'message': 'Two-factor authentication disabled successfully'
+        })
+
+
+class TwoFactorStatusView(APIView):
+    """
+    Get current 2FA status
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get(self, request):
+        user = request.user
+        return Response({
+            'two_factor_enabled': user.two_factor_enabled,
+            'email': user.email
+        })
